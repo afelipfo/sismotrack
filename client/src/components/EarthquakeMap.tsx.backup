@@ -1,0 +1,121 @@
+import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
+import { Icon, LatLngExpression } from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { Earthquake } from "../../../drizzle/schema";
+
+// Fix para los iconos de Leaflet en producción
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+delete (Icon.Default.prototype as any)._getIconUrl;
+Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
+
+interface EarthquakeMapProps {
+  earthquakes: Earthquake[];
+  center?: LatLngExpression;
+  zoom?: number;
+  height?: string;
+}
+
+/**
+ * Obtiene el color según la magnitud del sismo
+ */
+function getMagnitudeColor(magnitude: number): string {
+  if (magnitude >= 7) return "#8B0000"; // Rojo oscuro - Muy fuerte
+  if (magnitude >= 6) return "#DC143C"; // Rojo - Fuerte
+  if (magnitude >= 5) return "#FF6347"; // Rojo tomate - Moderado
+  if (magnitude >= 4) return "#FFA500"; // Naranja - Ligero
+  if (magnitude >= 3) return "#FFD700"; // Amarillo - Menor
+  return "#90EE90"; // Verde claro - Micro
+}
+
+/**
+ * Obtiene el radio del círculo según la magnitud
+ */
+function getMagnitudeRadius(magnitude: number): number {
+  return Math.pow(2, magnitude) * 1000; // Radio en metros
+}
+
+export default function EarthquakeMap({
+  earthquakes,
+  center = [-15, -60], // Centro de Sudamérica
+  zoom = 4,
+  height = "600px",
+}: EarthquakeMapProps) {
+  return (
+    <div style={{ height, width: "100%" }}>
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        scrollWheelZoom={true}
+        style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {earthquakes.map((earthquake) => {
+          const position: LatLngExpression = [
+            parseFloat(earthquake.latitude),
+            parseFloat(earthquake.longitude),
+          ];
+          const magnitude = parseFloat(earthquake.magnitude);
+
+          return (
+            <div key={earthquake.id}>
+              {/* Círculo de impacto */}
+              <Circle
+                center={position}
+                radius={getMagnitudeRadius(magnitude)}
+                pathOptions={{
+                  color: getMagnitudeColor(magnitude),
+                  fillColor: getMagnitudeColor(magnitude),
+                  fillOpacity: 0.2,
+                  weight: 2,
+                }}
+              />
+
+              {/* Marcador central */}
+              <Marker position={position}>
+                <Popup>
+                  <div className="p-2">
+                    <h3 className="font-bold text-lg mb-2">
+                      Magnitud {earthquake.magnitude}
+                    </h3>
+                    <p className="text-sm mb-1">
+                      <strong>Ubicación:</strong> {earthquake.place || earthquake.location}
+                    </p>
+                    <p className="text-sm mb-1">
+                      <strong>Profundidad:</strong> {earthquake.depth} km
+                    </p>
+                    <p className="text-sm mb-1">
+                      <strong>Fecha:</strong>{" "}
+                      {new Date(earthquake.time).toLocaleString("es-ES")}
+                    </p>
+                    {earthquake.url && (
+                      <a
+                        href={earthquake.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline text-sm"
+                      >
+                        Ver detalles en USGS →
+                      </a>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            </div>
+          );
+        })}
+      </MapContainer>
+    </div>
+  );
+}
+
