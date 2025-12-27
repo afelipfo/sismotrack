@@ -1,7 +1,6 @@
+import { createApp } from '../server/_core/index';
 
-import { createApp } from '../server/_core/index.js';
-
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
     const { app } = await createApp();
     app(req, res);
 }
