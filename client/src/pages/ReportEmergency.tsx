@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
-import { getLoginUrl } from "@/const";
+
 
 export default function ReportEmergency() {
   const { user, isAuthenticated } = useAuth();
@@ -81,25 +81,7 @@ export default function ReportEmergency() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="container max-w-2xl py-12">
-        <Card>
-          <CardHeader>
-            <CardTitle>Autenticación Requerida</CardTitle>
-            <CardDescription>
-              Debes iniciar sesión para reportar una emergencia
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <a href={getLoginUrl()}>Iniciar Sesión</a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
 
   return (
     <div className="container max-w-3xl py-8">

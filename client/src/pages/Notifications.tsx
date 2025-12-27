@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Loader2, CheckCircle2, AlertTriangle, Heart, Activity } from "lucide-react";
-import { getLoginUrl } from "@/const";
+
 import { toast } from "sonner";
 
 export default function Notifications() {
@@ -54,25 +54,7 @@ export default function Notifications() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="container max-w-2xl py-12">
-        <Card>
-          <CardHeader>
-            <CardTitle>Autenticación Requerida</CardTitle>
-            <CardDescription>
-              Debes iniciar sesión para ver tus notificaciones
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <a href={getLoginUrl()}>Iniciar Sesión</a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
 
   if (isLoading) {
     return (

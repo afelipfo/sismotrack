@@ -13,14 +13,21 @@ export const publicProcedure = t.procedure;
 const requireUser = t.middleware(async opts => {
   const { ctx, next } = opts;
 
-  if (!ctx.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
-  }
+  // Bypass auth check, always inject public user
+  const publicUser = {
+    id: "public_user",
+    name: "Ciudadano",
+    email: "publico@medellin.gov.co",
+    role: "user" as const,
+    loginMethod: "public",
+    createdAt: new Date(),
+    lastSignedIn: new Date()
+  };
 
   return next({
     ctx: {
       ...ctx,
-      user: ctx.user,
+      user: publicUser,
     },
   });
 });

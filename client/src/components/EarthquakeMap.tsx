@@ -75,8 +75,8 @@ export default function EarthquakeMap({ earthquakes }: EarthquakeMapProps) {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    // Crear el mapa centrado en Sudamérica
-    const map = L.map(mapContainerRef.current).setView([-15, -60], 4);
+    // Crear el mapa centrado en Medellín
+    const map = L.map(mapContainerRef.current).setView([6.2442, -75.5812], 12);
 
     // Agregar capa de OpenStreetMap
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

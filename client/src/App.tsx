@@ -30,12 +30,8 @@ function Navigation() {
     { path: "/sismos", label: t("nav.earthquakes"), icon: Activity },
     { path: "/reportar", label: t("nav.report"), icon: AlertTriangle },
     { path: "/donaciones", label: t("nav.donations"), icon: Heart },
+    { path: "/notificaciones", label: t("nav.notifications"), icon: Bell },
   ];
-  
-  // Solo mostrar notificaciones si el usuario está autenticado
-  const navItemsWithAuth = isAuthenticated
-    ? [...navItems, { path: "/notificaciones", label: t("nav.notifications"), icon: Bell }]
-    : navItems;
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
@@ -44,23 +40,22 @@ function Navigation() {
           <Link href="/">
             <span className="flex items-center space-x-2 font-bold text-xl cursor-pointer">
               <Activity className="h-6 w-6 text-primary" />
-              <span>SismoTracker</span>
+              <span>SismoTrack</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {navItemsWithAuth.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.path;
               return (
                 <Link key={item.path} href={item.path}>
                   <span
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
-                      isActive
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${isActive
                         ? "bg-primary text-primary-foreground"
                         : "hover:bg-accent hover:text-accent-foreground"
-                    }`}
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
@@ -71,23 +66,9 @@ function Navigation() {
           </div>
         </div>
 
-        {/* Auth Section */}
+        {/* Settings Section */}
         <div className="flex items-center gap-2">
-          {isAuthenticated ? (
-            <>
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {user?.name || user?.email}
-              </span>
-              <SettingsSwitches />
-              <Button variant="ghost" size="sm" onClick={logout}>
-                {t("nav.logout")}
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" asChild>
-              <a href={getLoginUrl()}>Iniciar Sesión</a>
-            </Button>
-          )}
+          <SettingsSwitches />
 
           {/* Mobile Menu Button */}
           <Button
@@ -105,18 +86,17 @@ function Navigation() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t">
           <div className="container py-4 space-y-2">
-            {navItemsWithAuth.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.path;
               return (
                 <Link key={item.path} href={item.path}>
                   <span
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                      isActive
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${isActive
                         ? "bg-primary text-primary-foreground"
                         : "hover:bg-accent hover:text-accent-foreground"
-                    }`}
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
@@ -161,10 +141,10 @@ function App() {
         switchable
       >
         <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>

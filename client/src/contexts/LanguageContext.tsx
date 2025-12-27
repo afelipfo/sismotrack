@@ -21,8 +21,8 @@ const translations = {
     "nav.logout": "Cerrar Sesión",
 
     // Home Page
-    "home.title": "SismoTracker",
-    "home.subtitle": "Monitorea la actividad sísmica en Sudamérica, reporta emergencias y apoya a las comunidades afectadas a través de donaciones verificadas.",
+    "home.title": "Secretaría de Infraestructura Física",
+    "home.subtitle": "Alcaldía de Medellín - Monitoreo de actividad sísmica, reportes de emergencias y gestión de infraestructura.",
     "home.viewEarthquakes": "Ver Sismos Recientes",
     "home.reportEmergency": "Reportar Emergencia",
     "home.features": "Funcionalidades Principales",

@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { APP_LOGO, getLoginUrl } from "@/const";
+import { APP_LOGO } from "@/const";
 import { Activity, AlertTriangle, Heart, MapPin, Bell, Bot } from "lucide-react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -21,11 +21,11 @@ export default function Home() {
               <Activity className="h-4 w-4 animate-pulse" />
               {t("home.badge")}
             </div>
-            
+
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
               {t("home.title")}
             </h1>
-            
+
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               {t("home.subtitle")}
             </p>

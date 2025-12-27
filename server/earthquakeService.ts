@@ -52,15 +52,19 @@ export async function fetchRecentEarthquakes(
   const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?${params.toString()}`;
 
   try {
+    console.log(`Fetching earthquakes from USGS: ${url}`);
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`USGS API error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`USGS API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
     const data: USGSResponse = await response.json();
+    console.log(`Fetched ${data.features?.length || 0} earthquakes from USGS`);
     return data.features || [];
   } catch (error) {
     console.error("Error fetching earthquakes from USGS:", error);
-    throw error;
+    // Return empty array instead of throwing to prevent app crash on external API failure
+    return [];
   }
 }
 

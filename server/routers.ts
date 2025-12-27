@@ -7,16 +7,7 @@ import { z } from "zod";
 export const appRouter = router({
   system: systemRouter,
 
-  auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
-    }),
-  }),
+
 
   // Routers de funcionalidades
   earthquakes: router({
@@ -317,7 +308,7 @@ Responde de manera clara, concisa y útil en español. Si el usuario pregunta so
         // Llamar al LLM
         const response = await invokeLLM({ messages });
         const content = response.choices[0].message.content;
-        
+
         // Asegurar que siempre devolvemos un string
         const responseText = typeof content === 'string' ? content : JSON.stringify(content);
 

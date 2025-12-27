@@ -1,266 +1,168 @@
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  InsertEarthquake,
+  InsertEmergencyReport,
+  InsertDonationCampaign,
+  InsertDonation,
+  InsertNotification,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
+// --- IN-MEMORY DATA STORE ---
+const db = {
+  users: new Map<string, any>(),
+  earthquakes: new Map<string, any>(),
+  emergencyReports: new Map<string, any>(),
+  donationCampaigns: new Map<string, any>(),
+  donations: new Map<string, any>(),
+  notifications: new Map<string, any>(),
+};
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
-  }
-  return _db;
-}
+// --- USER FUNCTIONS ---
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.id) {
-    throw new Error("User ID is required for upsert");
-  }
+  if (!user.id) throw new Error("User ID is required");
+  const existing = db.users.get(user.id) || {};
 
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
+  // Merge logic similar to onDuplicateKeyUpdate
+  const merged = { ...existing, ...user };
 
-  try {
-    const values: InsertUser = {
-      id: user.id,
-    };
-    const updateSet: Record<string, unknown> = {};
+  if (merged.lastSignedIn === undefined) merged.lastSignedIn = new Date();
+  if (merged.id === ENV.ownerId) merged.role = 'admin';
 
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role === undefined) {
-      if (user.id === ENV.ownerId) {
-        user.role = 'admin';
-        values.role = 'admin';
-        updateSet.role = 'admin';
-      }
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+  db.users.set(user.id, merged);
 }
 
 export async function getUser(id: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
-  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  return db.users.get(id);
 }
 
-// ============ EARTHQUAKES ============
-import {
-  earthquakes,
-  InsertEarthquake,
-  emergencyReports,
-  InsertEmergencyReport,
-  donationCampaigns,
-  InsertDonationCampaign,
-  donations,
-  InsertDonation,
-  notifications,
-  InsertNotification,
-} from "../drizzle/schema";
-import { desc, and, gte, lte, sql } from "drizzle-orm";
+// --- EARTHQUAKES ---
 
 export async function insertEarthquake(earthquake: InsertEarthquake) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(earthquakes).values(earthquake).onDuplicateKeyUpdate({
-    set: {
-      magnitude: earthquake.magnitude,
-      location: earthquake.location,
-      latitude: earthquake.latitude,
-      longitude: earthquake.longitude,
-      depth: earthquake.depth,
-      time: earthquake.time,
-      url: earthquake.url,
-      place: earthquake.place,
-    },
-  });
+  // Update if exists or insert new
+  db.earthquakes.set(earthquake.id, earthquake);
 }
 
 export async function getRecentEarthquakes(limit: number = 50) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db.select().from(earthquakes).orderBy(desc(earthquakes.time)).limit(limit);
+  return Array.from(db.earthquakes.values())
+    .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+    .slice(0, limit);
 }
 
 export async function getEarthquakeById(id: string) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(earthquakes).where(eq(earthquakes.id, id)).limit(1);
-  return result[0] || null;
+  return db.earthquakes.get(id) || null;
 }
 
 export async function getEarthquakesByDateRange(startDate: Date, endDate: Date) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db
-    .select()
-    .from(earthquakes)
-    .where(and(gte(earthquakes.time, startDate), lte(earthquakes.time, endDate)))
-    .orderBy(desc(earthquakes.time));
+  return Array.from(db.earthquakes.values())
+    .filter(e => {
+      const t = new Date(e.time);
+      return t >= startDate && t <= endDate;
+    })
+    .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 }
 
-// ============ EMERGENCY REPORTS ============
+// --- EMERGENCY REPORTS ---
+
 export async function createEmergencyReport(report: InsertEmergencyReport) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(emergencyReports).values(report);
+  db.emergencyReports.set(report.id, { ...report, createdAt: new Date(), status: 'pending' });
 }
 
 export async function getEmergencyReports(limit: number = 100) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db.select().from(emergencyReports).orderBy(desc(emergencyReports.createdAt)).limit(limit);
+  return Array.from(db.emergencyReports.values())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
 }
 
 export async function getEmergencyReportById(id: string) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(emergencyReports).where(eq(emergencyReports.id, id)).limit(1);
-  return result[0] || null;
+  return db.emergencyReports.get(id) || null;
 }
 
 export async function getEmergencyReportsByUserId(userId: string) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db
-    .select()
-    .from(emergencyReports)
-    .where(eq(emergencyReports.userId, userId))
-    .orderBy(desc(emergencyReports.createdAt));
+  return Array.from(db.emergencyReports.values())
+    .filter(r => r.userId === userId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function updateEmergencyReportStatus(
   id: string,
   status: "pending" | "verified" | "in_progress" | "resolved"
 ) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db
-    .update(emergencyReports)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(emergencyReports.id, id));
+  const report = db.emergencyReports.get(id);
+  if (report) {
+    db.emergencyReports.set(id, { ...report, status, updatedAt: new Date() });
+  }
 }
 
-// ============ DONATION CAMPAIGNS ============
+// --- DONATION CAMPAIGNS ---
+
 export async function createDonationCampaign(campaign: InsertDonationCampaign) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(donationCampaigns).values(campaign);
+  db.donationCampaigns.set(campaign.id, { ...campaign, createdAt: new Date(), currentAmount: '0' });
 }
 
 export async function getDonationCampaigns(status?: "active" | "completed" | "closed") {
-  const db = await getDb();
-  if (!db) return [];
+  let campaigns = Array.from(db.donationCampaigns.values());
   if (status) {
-    return await db
-      .select()
-      .from(donationCampaigns)
-      .where(eq(donationCampaigns.status, status))
-      .orderBy(desc(donationCampaigns.createdAt));
+    campaigns = campaigns.filter(c => c.status === status);
   }
-  return await db.select().from(donationCampaigns).orderBy(desc(donationCampaigns.createdAt));
+  return campaigns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function getDonationCampaignById(id: string) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(donationCampaigns).where(eq(donationCampaigns.id, id)).limit(1);
-  return result[0] || null;
+  return db.donationCampaigns.get(id) || null;
 }
 
 export async function updateCampaignAmount(campaignId: string, amount: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const campaign = await getDonationCampaignById(campaignId);
-  if (!campaign) throw new Error("Campaign not found");
-  const currentAmount = parseFloat(campaign.currentAmount);
-  const newAmount = currentAmount + parseFloat(amount);
-  await db
-    .update(donationCampaigns)
-    .set({ currentAmount: newAmount.toString(), updatedAt: new Date() })
-    .where(eq(donationCampaigns.id, campaignId));
+  const campaign = db.donationCampaigns.get(campaignId);
+  if (campaign) {
+    const current = parseFloat(campaign.currentAmount || "0");
+    const added = parseFloat(amount || "0");
+    db.donationCampaigns.set(campaignId, {
+      ...campaign,
+      currentAmount: (current + added).toString(),
+      updatedAt: new Date()
+    });
+  }
 }
 
-// ============ DONATIONS ============
+// --- DONATIONS ---
+
 export async function createDonation(donation: InsertDonation) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(donations).values(donation);
-  // Actualizar el monto de la campaña
+  db.donations.set(donation.id, { ...donation, createdAt: new Date() });
   await updateCampaignAmount(donation.campaignId, donation.amount);
 }
 
 export async function getDonationsByCampaignId(campaignId: string) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db
-    .select()
-    .from(donations)
-    .where(eq(donations.campaignId, campaignId))
-    .orderBy(desc(donations.createdAt));
+  return Array.from(db.donations.values())
+    .filter(d => d.campaignId === campaignId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-// ============ NOTIFICATIONS ============
+// --- NOTIFICATIONS ---
+
 export async function createNotification(notification: InsertNotification) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(notifications).values(notification);
+  const id = notification.id || `notif_${Date.now()}_${Math.random()}`;
+  db.notifications.set(id, { ...notification, id, isRead: "false", createdAt: new Date() });
 }
 
 export async function getUserNotifications(userId: string, limit: number = 50) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db
-    .select()
-    .from(notifications)
-    .where(eq(notifications.userId, userId))
-    .orderBy(desc(notifications.createdAt))
-    .limit(limit);
+  return Array.from(db.notifications.values())
+    .filter(n => n.userId === userId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
 }
 
 export async function markNotificationAsRead(id: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(notifications).set({ isRead: "true" }).where(eq(notifications.id, id));
+  const notif = db.notifications.get(id);
+  if (notif) {
+    db.notifications.set(id, { ...notif, isRead: "true" });
+  }
 }
+
+// --- MOCK DATABASE HELPER ---
+export async function getDb() {
+  // Returns true to satisfy truthiness checks if needed, but not used by above functions
+  return true;
+}
+
