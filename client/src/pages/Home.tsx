@@ -99,25 +99,6 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Donaciones */}
-            <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                    <Heart className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <CardTitle>{t("home.donations")}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base">
-                  {t("home.donationsDesc")}
-                </CardDescription>
-                <Button variant="link" className="mt-4 p-0" asChild>
-                  <Link href="/donaciones">{t("home.donate")} →</Link>
-                </Button>
-              </CardContent>
-            </Card>
 
             {/* Mapa Interactivo */}
             <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
@@ -192,10 +173,7 @@ export default function Home() {
               <div className="text-4xl font-bold text-red-600 dark:text-red-400">24/7</div>
               <div className="text-lg font-medium">{t("home.continuousMonitoring")}</div>
             </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-orange-600 dark:text-orange-400">100%</div>
-              <div className="text-lg font-medium">{t("home.donationTransparency")}</div>
-            </div>
+
             <div className="space-y-2">
               <div className="text-4xl font-bold text-green-600 dark:text-green-400">{t("home.realTime")}</div>
               <div className="text-lg font-medium">{t("home.updatedData")}</div>
@@ -218,9 +196,7 @@ export default function Home() {
               <Button size="lg" variant="secondary" asChild>
                 <Link href="/reportar">{t("home.reportEmergency")}</Link>
               </Button>
-              <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white/10" asChild>
-                <Link href="/donaciones">{t("home.viewCampaigns")}</Link>
-              </Button>
+
             </div>
           </div>
         </div>
